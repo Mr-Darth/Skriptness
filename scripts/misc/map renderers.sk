@@ -1,0 +1,108 @@
+# Custom map renderers framework
+#
+# This script provides the framework to create custom map renderers via skript-reflect.
+# This facilitates the creation of map renderers by generating a special interface which
+# can then be simply implemented by dynamic class proxies.
+#
+# This works by generating two classes: a {@delegating-class-name} which extends Bukkit's MapRenderer
+# and delegates all calls to to a {@delegate-class-name} (implemented by the user to add their own logic).
+#
+# The user simply needs to implement the {@delegate-class-name} interface and then construct
+# a {@delegating-class-name} with the {@delegate-class-name}. The {@delegating-class-name} will then
+# forward all calls to the created {@delegate-class-name}.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 and skript-reflect 2.3 on Paper 1.18.2.
+
+
+
+options:
+	# The simple names of the classes to generate.
+	delegating-class-name: DelegatingMapRenderer
+	delegate-class-name: DelegateMapRenderer
+
+	# The package of the generated classes.
+	# skript-reflect's Lookup is used to define classes, thus the packages must be the same.
+	# This must not be changed!
+	defining-package: com.btk5h.skriptmirror.util.lookup
+
+import:
+	com.btk5h.skriptmirror.util.lookup.LookupGetter
+	org.objectweb.asm.ClassWriter
+	org.objectweb.asm.Opcodes
+
+# Loading the classes is handled by a special effect.
+# This is to have the classes be loaded at parse time, so that they can be used in the script directly.
+# The effect should be used before actually referencing the generated classes.
+effect load map classes:
+	parse: # Parse time hack :)
+
+		set {_delegating-class-name} to "{@defining-package}.{@delegating-class-name}"
+		set {_delegate-class-name} to "{@defining-package}.{@delegate-class-name}"
+
+		# Don't double load or we will get an error
+		continue if class {_delegating-class-name} exists
+		continue if class {_delegate-class-name} exists
+
+		set {_delegating-binary-name} to {_delegating-class-name}.replace(".", "/")
+		set {_delegate-binary-name} to {_delegate-class-name}.replace(".", "/")
+
+		set {_delegating-writer} to new ClassWriter(Opcodes.ASM9)
+
+		{_delegating-writer}.visit(Opcodes.V16, Opcodes.ACC_PUBLIC, {_delegating-binary-name}, null, "org/bukkit/map/MapRenderer", null)
+
+		{_delegating-writer}.visitField(Opcodes.ACC_PRIVATE + Opcodes.ACC_FINAL, "delegate", "L%{_delegate-binary-name}%;", null, null).visitEnd()
+
+		set {_visitor} to {_delegating-writer}.visitMethod(Opcodes.ACC_PUBLIC, "render", "(Lorg/bukkit/map/MapView;Lorg/bukkit/map/MapCanvas;Lorg/bukkit/entity/Player;)V", null, null)
+		{_visitor}.visitCode()
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 0)
+		{_visitor}.visitFieldInsn(Opcodes.GETFIELD, {_delegating-binary-name}, "delegate", "L%{_delegate-binary-name}%;")
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 1)
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 2)
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 3)
+		{_visitor}.visitMethodInsn(Opcodes.INVOKEINTERFACE, {_delegate-binary-name}, "render", "(Lorg/bukkit/map/MapView;Lorg/bukkit/map/MapCanvas;Lorg/bukkit/entity/Player;)V", true)
+		{_visitor}.visitInsn(Opcodes.RETURN)
+		{_visitor}.visitMaxs(4, 4)
+		{_visitor}.visitEnd()
+
+		set {_visitor} to {_delegating-writer}.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "(L%{_delegate-binary-name}%;)V", null, null)
+		{_visitor}.visitCode()
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 0)
+		{_visitor}.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/bukkit/map/MapRenderer", "<init>", "()V", false)
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 0)
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 1)
+		{_visitor}.visitFieldInsn(Opcodes.PUTFIELD, {_delegating-binary-name}, "delegate", "L%{_delegate-binary-name}%;")
+		{_visitor}.visitInsn(Opcodes.RETURN)
+		{_visitor}.visitMaxs(2, 2)
+		{_visitor}.visitEnd()
+
+		set {_visitor} to {_delegating-writer}.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "(L%{_delegate-binary-name}%;Z)V", null, null)
+		{_visitor}.visitCode()
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 0)
+		{_visitor}.visitVarInsn(Opcodes.ILOAD, 2)
+		{_visitor}.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/bukkit/map/MapRenderer", "<init>", "(Z)V", false)
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 0)
+		{_visitor}.visitVarInsn(Opcodes.ALOAD, 1)
+		{_visitor}.visitFieldInsn(Opcodes.PUTFIELD, {_delegating-binary-name}, "delegate", "L%{_delegate-binary-name}%;")
+		{_visitor}.visitInsn(Opcodes.RETURN)
+		{_visitor}.visitMaxs(2, 3)
+		{_visitor}.visitEnd()
+
+		{_delegating-writer}.visitEnd()
+		set {_delegating-bytecode} to {_delegating-writer}.toByteArray()
+
+		set {_delegate-writer} to new ClassWriter(Opcodes.ASM9)
+		{_delegate-writer}.visit(Opcodes.V16, Opcodes.ACC_PUBLIC + Opcodes.ACC_ABSTRACT + Opcodes.ACC_INTERFACE, {_delegate-binary-name}, null, "java/lang/Object", null)
+
+		set {_visitor} to {_delegate-writer}.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_ABSTRACT, "render", "(Lorg/bukkit/map/MapView;Lorg/bukkit/map/MapCanvas;Lorg/bukkit/entity/Player;)V", null, null)
+		{_visitor}.visitEnd()
+
+		{_delegate-writer}.visitEnd()
+		set {_delegate-bytecode} to {_delegate-writer}.toByteArray()
+
+		LookupGetter.getLookup().defineClass({_delegating-bytecode})
+		LookupGetter.getLookup().defineClass({_delegate-bytecode})
+
+		continue
+	trigger:
+		stop
