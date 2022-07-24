@@ -1,0 +1,47 @@
+# Rainbow leather armour
+#
+# A function to dress entities with a set of leather armour whose colours
+# change in a rainbow pattern.
+#
+# This uses a special metadata value to store the status of the armour.
+# It is up to the user to ensure that the metadata value is properly used,
+# by making use of the provided functions to manipulate it.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 on Paper 1.18.2.
+
+
+options:
+	# The metadata key to store whether an entity has armour.
+	metadata: "rainbow-armour"
+
+# Equips a given entity with a set of rainbow armour that changes colour
+# depending on the provided parameters.
+#
+# Parameters:
+# * livingentity: the entity to equip the armour with
+# * timespan: the speed at which the armour changes colour
+# * step: the difference between each colour change, in the interval [0, 360]
+# * itemtypes: a list of leather armour pieces to use
+function rainbow_armour(entity: livingentity, speed: timespan = 10 ticks, step: number = 1, armour: itemtypes = all leather armour):
+	set {_key} to unix timestamp of now
+	set metadata tag "rainbow-armour" of {_entity} to {_key}
+	while metadata tag "rainbow-armour" of {_entity} is {_key}:
+		add {_step} to {_angle}
+		set {_r} to (sin({_angle}) + 1) * 127.5
+		set {_g} to (sin({_angle} + 120) + 1) * 127.5
+		set {_b} to (sin({_angle} + 240) + 1) * 127.5
+		dye {_armour::*} ({_r}, {_g}, {_b})
+		equip {_entity} with {_armour::*}
+		wait {_speed}
+
+# Stops the rainbow armour of an entity.
+# This clears the metadata value and removes all armour the entity is wearing.
+function stop_rainbow_armour(entity: livingentity):
+	clear metadata tag "rainbow-armour" of {_entity}
+	clear {_entity}'s helmet, {_entity}'s chestplate, {_entity}'s leggings, {_entity}'s boots
+
+# Returns whether an entity has rainbow armour equipped.
+# This checks the metadata value.
+function has_rainbow_armour(entity: livingentity) :: boolean:
+	return true if metadata tag "rainbow-armour" of {_entity} exists, else false

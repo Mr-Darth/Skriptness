@@ -1,0 +1,170 @@
+# (2D) Rectangular Voronoi diagrams generation
+#
+# The below functions can be used to generate rectangular Voronoi diagrams.
+# Two different functions are provided, each of them generating the diagram in a different
+# way a direct approach (passing once through all points and colouring them by distance)
+# and a flooding approach (more precisely, using the jump flooding algorithm).
+# Both approaches produce satisfying results, but they don't always generate the same diagram
+# (the JFA approach can produce incorrect results, but having extra correction passes may help
+# reduce the number of errors).
+# The direct approach proves to be faster than the flooding implementation, so it should be preferred.
+# The JFA implementation is mostly for fun :)
+#
+# To generate the diagrams the dimensions and a list of seed points must be provided.
+# For the JFA approach, a number of correction passes can also be specified, but it's
+# optional and defaults to 1.
+#
+# The functions return a list of vectors representing the two-dimensional Voronoi diagram.
+# The vector's x and y components represent the position of the point, and the vector's z component
+# represents the colour of the point. The colour must be an integer strictly larger than 0.
+#
+# An example code is also provided below for clarity.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 on Paper 1.18.2.
+
+
+
+# Generates a Voronoi diagram of the given size, using the given seeds.
+# The diagram is generated using a direct approach: each point is coloured by
+# finding the closest seed to it.
+#
+# Parameters:
+# * number: the width of the diagram
+# * number: the height of the diagram
+# * vectors: the list of vectors to use as seeds
+# Returns: a list of vectors representing the diagram
+function generate_voronoi_diagram(width: number, height: number, seeds: vectors) :: vectors:
+
+	# Visit all points in the diagram and colour them by the closest seed.
+	loop integers from 0 to {_width} - 1:
+		loop integers from 0 to {_height} - 1:
+			add 1 to {_index}
+
+			# Find the closest seed to the point.
+			set {_record} to infinity value
+			loop {_seeds::*}:
+				set {_seed} to loop-value-3
+				set {_distance} to ((loop-value-1) - (x of {_seed}))^2 + ((loop-value-2) - (y of {_seed}))^2
+				if {_distance} < {_record}:
+					set {_record} to {_distance}
+					set {_colour} to loop-value-3
+
+			# Colour the point according to the closest seed.
+			set {_diagram::%{_index}%} to vector loop-value-1, loop-value-2, (z of {_colour})
+
+	return {_diagram::*}
+
+# Generates a Voronoi diagram of the given size, using the given seeds,
+# and an optional number of correction passes.
+# The diagram is generated using the jump flooding algorithm.
+# JFA does not always produce the correct results, so having some extra correction passes can help.
+#
+# Parameters:
+# * number: the width of the diagram
+# * number: the height of the diagram
+# * vectors: the list of vectors to use as seeds
+# * number: the number of correction passes to perform
+# Returns: a list of vectors representing the diagram
+function generate_voronoi_diagram_jfa(width: number, height: number, seeds: vectors, correction: number = 1) :: vectors:
+	# Find the smallest N*N square that can contain the diagram
+	set {_size} to max({_width}, {_height})
+
+	# Correlate the seeds with their respective colours.
+	set {_temp::*} to {_seeds::*}
+	clear {_seeds::*}
+	loop {_temp::*}:
+		set {_seeds::%z of loop-value%} to loop-value
+
+	# Fill in the diagram. All non-seed points start with the null colour (0).
+	loop integers from 0 to {_width} - 1:
+		loop integers from 0 to {_height} - 1:
+			add 1 to {_index}
+
+			# If the point is a seed, set its colour to the seed's colour.
+			loop {_seeds::*}:
+				x of loop-value-3 is loop-value-1
+				y of loop-value-3 is loop-value-2
+				set {_diagram::%{_index}%} to loop-value-3
+
+			# Cell wasn't a seed, so set its colour to the null colour.
+			if {_diagram::%{_index}%} is not set:
+				set {_diagram::%{_index}%} to vector loop-value-1, loop-value-2, 0
+
+	set {_modifiers::*} to -1, 0 and 1 # Workaround for literal list type bug.
+
+	# Steps are in the set {N/2, N/4, N/8, ..., 1}.
+	loop (rounded up log({_size}, 2)) + {_correction} times:
+		set {_step} to max(rounded down ({_size} / (2 ^ loop-value)), 1)
+
+		clear {_index} # From previous iteration
+
+		loop {_diagram::*}:
+			add 1 to {_index}
+
+			loop {_modifiers::*}:
+				loop {_modifiers::*}:
+
+					set {_offset} to {_index} + ({_step} * (loop-value-4)) + ({_step} * (loop-value-3) * {_height})
+					set {_neighbour} to {_diagram::%{_offset}%}
+
+					# Ensure neighbour is in the diagram.
+					continue if x of {_neighbour} is not between 0 and {_width} - 1
+					continue if y of {_neighbour} is not between 1 and {_height} - 1
+
+					# Colour blank point with the colour of its neighbour.
+					if z of (loop-value-2) is 0:
+						if z of {_neighbour} is not 0:
+							set z of {_diagram::%loop-index-1%} to z of {_neighbour}
+
+					# If both the point and its neighbour are coloured, see whether the point should switch
+					# to the neighbour's colour if it is closer to the seed of the neighbour.
+					else if z of (loop-value-2, {_neighbour}) doesn't contain 0:
+
+						# Squared Euclidean distance in the plane
+						set {_distance-to-own-seed} to ((x of (loop-value-2)) - (x of {_seeds::%z of loop-value-2%}))^2 + ((y of (loop-value-2)) - (y of {_seeds::%z of loop-value-2%}))^2
+						set {_distance-to-neighbour-seed} to ((x of (loop-value-2)) - (x of {_seeds::%z of {_neighbour}%}))^2 + ((y of (loop-value-2)) - (y of {_seeds::%z of {_neighbour}%}))^2
+
+						# If the point is closer to the seed of the neighbour, switch to the neighbour's colour.
+						if {_distance-to-own-seed} > {_distance-to-neighbour-seed}:
+							set z of {_diagram::%loop-index-1%} to z of {_neighbour}
+
+	return {_diagram::*}
+
+# Example code
+on load:
+	add vector 1, 1, 1 to {_seeds::*}
+	add vector 5, 5, 2 to {_seeds::*}
+	add vector 13, 1, 3 to {_seeds::*}
+	add vector 9, 7, 4 to {_seeds::*}
+	add vector 19, 20, 5 to {_seeds::*}
+	add vector 10, 10, 6 to {_seeds::*}
+	add vector 25, 17, 7 to {_seeds::*}
+	add vector 29, 30, 8 to {_seeds::*}
+	add vector 27, 1, 9 to {_seeds::*}
+	add vector 24, 13, 10 to {_seeds::*}
+	add vector 23, 19, 11 to {_seeds::*}
+	add vector 16, 9, 12 to {_seeds::*}
+	add vector 2, 14, 13 to {_seeds::*}
+
+	set {_mapper::1} to red concrete
+	set {_mapper::2} to blue concrete
+	set {_mapper::3} to black concrete
+	set {_mapper::4} to magenta concrete
+	set {_mapper::5} to pink concrete
+	set {_mapper::6} to yellow concrete
+	set {_mapper::7} to orange concrete
+	set {_mapper::8} to gray concrete
+	set {_mapper::9} to cyan concrete
+	set {_mapper::10} to green concrete
+	set {_mapper::11} to light gray concrete
+	set {_mapper::12} to white concrete
+	set {_mapper::13} to purple concrete
+
+	set {_corner} to spawn of world "world"
+
+	set {_map::*} to generate_voronoi_diagram(30, 35, {_seeds::*})
+
+	loop {_map::*}:
+		set {_offset} to vector (x of loop-value), 0, (y of loop-value)
+		set block at ({_corner} ~ {_offset}) to {_mapper::%z of loop-value%}

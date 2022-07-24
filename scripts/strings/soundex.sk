@@ -1,0 +1,32 @@
+# Soundex algorithm
+#
+# The below function can be used to encode a string into its Soundex code.
+# For more information about the algorithm, see https://en.wikipedia.org/wiki/Soundex.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 on Paper 1.18.2.
+
+
+
+options:
+	# Character mappings
+	alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	mapping:  "01230120022455012623010202"
+
+# Encodes the given string into its Soundex code.
+#
+# Parameters:
+# * string - string to encode
+# Returns: the Soundex code of the given string
+function soundex(input: string) :: string:
+	return "" if {_input} is empty
+	set {_input} to capitalised {_input}
+	set {_output} to first character of {_input}
+	loop characters at (integers from 2 to (length of {_input} + 1)) in {_input}:
+		return {_output} if length of {_output} >= 4
+		set {_digit} to character at (index of loop-value in {@alphabet}) in {@mapping}
+		if {_digit} is not "0" or last character of {_output}:
+			set {_output} to join {_output} and {_digit}
+	loop 4 - length of {_output} times: # Add trailing zeros
+		set {_output} to join {_output} and "0"
+	return {_output}

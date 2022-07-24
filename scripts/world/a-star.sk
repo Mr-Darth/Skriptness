@@ -1,0 +1,128 @@
+# Statically-weighted A* algorithm implementation
+#
+# This is an implementation of the A* search algorithm specifically tailored
+# for the three-dimensional Minecraft world. It is designed with speed in mind,
+# making use of various optimisations to make the algorithm run faster.
+#
+# The algorithm supports the following twelve basic moves:
+# (0, k, 1), (0, k, -1), (1, k, 0), (-1, k, 0), for k in {-1, 0, 1}.
+#
+# An invalid node is a node that the algorithm cannot visit.
+# A node is invalid if either of the following is true:
+# * it is solid;
+# * the node below is not solid.
+#
+# As a heuristic, the three-dimensional Euclidean distance is used.
+# This is was chosen because of its efficiency in Skript. Furthermore,
+# it guarantees that the heuristic function is admissible, which is required
+# for the A* algorithm to return the optimal path.
+#
+# The algorithm also supports finding suboptimal paths, by relaxing the admissibility
+# criterion. This is done by (statically) weighing the heuristic function by a provided
+# ε parameter, where ε > 1. This bounds the relaxation such that the suboptimal path's cost
+# is guaranteed to be no worse than (1 + ε) times the optimal solution path.
+# Using ε = 1 is equivalent to using the standard A* algorithm.
+# Using ε = 0 is equivalent to using the Dijkstra's algorithm.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 on Paper 1.18.2.
+
+
+
+options:
+	# Precalculated for use in move costs.
+	sqrt2: 1.4142135623730951
+
+# Starts the A* search algorithm which searches for the optimal path from the
+# given start node to the given goal node.
+#
+# Optionally, an ε parameter can be provided for finding suboptimal paths.
+# The value of ε defaults to 1, which is equivalent to using the standard, non-weighted
+# A* algorithm.
+#
+# Given enough time and space, the algorithm will eventually terminate if the
+# goal node is reachable. There is no guarantee that this function will terminate
+# if the goal node is not reachable from the start node.
+#
+# Parameters:
+# * location: the start node as a location in the world
+# * location: the goal node as a location in the world
+# * number: the ε parameter
+# Returns: a list of locations representing the found path from the start node to the goal node
+function find_path(origin: location, target: location, epsilon: number = 1) :: locations:
+
+	# Center locations
+	set {_origin-node} to location of block at {_origin}
+	set {_target-node} to location of block at {_target}
+
+	# Register moves in 3D space
+	add (vector 0, 0, 1), (vector 0, 0, -1), (vector 1, 0, 0), (vector -1, 0, 0) to {_neighbour-offsets::*}
+	add (vector 0, 1, 1), (vector 0, 1, -1), (vector 1, 1, 0), (vector -1, 1, 0) to {_neighbour-offsets::*}
+	add (vector 0, -1, 1), (vector 0, -1, -1), (vector 1, -1, 0), (vector -1, -1, 0) to {_neighbour-offsets::*}
+
+	# Cost of each move, in the order they were added
+	add 1, 1, 1, 1 to {_neighbour-offset-costs::*}
+	add {@sqrt2}, {@sqrt2}, {@sqrt2}, {@sqrt2} to {_neighbour-offset-costs::*}
+	add {@sqrt2}, {@sqrt2}, {@sqrt2}, {@sqrt2} to {_neighbour-offset-costs::*}
+
+	# Initialise data of origin node
+	set {_nodes::%{_origin-node}%::reach-score} to 0
+	set {_nodes::%{_origin-node}%::total-score} to distance between {_origin-node} and {_target-node}
+
+	# Quasi-priority queue of nodes to visit
+	# Might be unstable, but it should be significantly faster than sorting manually every time
+	set {_open-nodes::%{_nodes::%{_origin-node}%::total-score}%::%{_origin-node}%} to {_origin-node}
+
+	# An open nodes counter might be faster than getting all keys
+	while indices of {_open-nodes::*} exists:
+
+		# Grab a node in branch with lowest total score
+		set {_node-key} to first element of indices of {_open-nodes::*}
+		set {_current-node} to first element of {_open-nodes::%{_node-key}%::*}
+
+		# Reached target
+		if {_current-node} is {_target-node}:
+
+			# Reconstruct path
+			while {_nodes::%{_current-node}%::parent-node} exists:
+				add 1 to {_index}
+				set {_path::%{_index}%} to {_current-node}
+				set {_current-node} to {_nodes::%{_current-node}%::parent-node}
+
+			return {_path::*}
+
+		# Remove node from open list
+		delete {_open-nodes::%{_node-key}%::%{_current-node}%}
+
+		# Fix for dead branches in tree
+		if {_open-nodes::%{_node-key}%::*} does not exist:
+			delete {_open-nodes::%{_node-key}%::*}
+
+		# Visit neighbouring nodes
+		loop {_neighbour-offsets::*}:
+			set {_neighbour-node} to location of block at ({_current-node} offset by loop-value)
+
+			# Neighbour is not valid to visit
+			continue loop if block at {_neighbour-node} is solid
+			continue loop if block below {_neighbour-node} is not solid
+
+			# Compute candidate reach score
+			set {_tentative-reach-score} to {_nodes::%{_current-node}%::reach-score} + {_neighbour-offset-costs::%loop-index%}
+
+			# Update node information if a better path is found through the current node to the neighbour
+			if {_tentative-reach-score} < {_nodes::%{_neighbour-node}%::reach-score} ? infinity value:
+				set {_old-total-score} to {_nodes::%{_neighbour-node}%::total-score}
+
+				set {_nodes::%{_neighbour-node}%::reach-score} to {_tentative-reach-score}
+				set {_nodes::%{_neighbour-node}%::total-score} to {_tentative-reach-score} + ({_epsilon} * distance between {_neighbour-node} and {_target-node})
+				set {_nodes::%{_neighbour-node}%::parent-node} to {_current-node}
+
+				# Add the node to the open list
+				set {_open-nodes::%{_nodes::%{_neighbour-node}%::total-score}%::%{_neighbour-node}%} to {_neighbour-node}
+
+				# If the node was already in the open list, remove it from the old position
+				if {_open-nodes::%{_old-total-score}%::%{_neighbour-node}%} is set:
+					delete {_open-nodes::%{_old-total-score}%::%{_neighbour-node}%}
+					# Fix for dead branches in tree
+					if {_open-nodes::%{_old-total-score}%::*} does not exist:
+						delete {_open-nodes::%{_old-total-score}%::*}
