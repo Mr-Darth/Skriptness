@@ -39,7 +39,8 @@ on load:
 The variable structure can take in variables whose indices contain types. Let's take `{_foo::%number%} = 1` from the provided script.
 > This variable is internally stored as `{_foo::<number>} = 1`.
 
-When the variable is now used, if the object in the index is has that type as *first* supertype and the variable is not set, it defaults to `1`.
+When the variable is now used, if the return type of *the expression* in the index has that type as a *first registered* supertype and the variable is not set, it defaults to `1`.
+> The first registered supertype here means either the type itself if it is available or the closest registered type.
 
 *Note:* Don't be fooled by the fact that these variables accept types! Indices will still always end up as strings.
 </details>
@@ -89,4 +90,41 @@ If you did actually solve it in less than five minutes, OK. You are not a total 
 <summary>No</summary>
 You are a disappointment.
 </details>
+</details>
+
+# Explanation
+<details>
+<summary>Detailed explanation</summary>
+
+Let's start with the function `mystery()` because this is actually where the magic happens. \
+We begin with setting `{_a}` to be `rounded up (2^70 + 0.5)`. Rounding returns integers evidently, so `{_a}` is now an integer (doesn't matter its value). \
+We then proceed to set `{_b}` to `{_a}`. \
+Then we multiply `{_a}` by `({_foo::%{_a}%} ? {_bar::%{_b}%})`. Let's see... Is `{_foo::%{_a}%}` set? Well, `{_a}` is an integer, integers are numbers, and we used `%number%` in the default variable. So you might be tempted to say that `{_foo::%{_a}%}` is `1`. But you would be wrong. Skript uses the return type of *the expression* in the index. For variables, it's *always* `object`. So we default to `{_bar::%{_b}%}` which is `0` because `{_b}` is indeed an object.
+> Skript also has a *type hint* system which is able to keep track of the types of local variables, but it is currently disabled.
+
+Because we multiplied `{_a}` by `0`, `{_a}` is now `0` which is not equal to `{_b}`. The condition fails and `{_a}` becomes `7`. \
+Then, we check whether `{_a} is 2, 3, 4, 5, 6, or 7`. Notice the serial comma before `or`. This makes the conjunction behave like `and`. And we can safely say that seven is not equal to all the numbers from two through seven. \
+The variable `{_c}` remains unset; adding it to `{_a}` won't make a difference. \
+Okay, the next line has more expressions: `set {_a} to {_foo::%{_c}%} + {_a} + foo({_c})`. Let's evaluate them one by one:
+* `{_foo::%{_c}%}` - as I explained above, this will be unset;
+* `{_a}` - we established it's `7`;
+* `foo({_c})` - `{_c}` is unset, we don't get anything.
+
+Thus, `{_a}` remains `7`. \
+Now, a tricky one `set {_c} to {_foo::2}`. `2` is indeed a number so you would be inclined to say the default variable actually applies here. But keep in mind the `2` here is actually a string. `{_c}` remains unset. \
+We next set the variable `{_d}` to `{_a} / {_a}`. This is evidently `1`. But that `1` is a *number*, not an integer! Division and exponentiation *always* return numbers. \
+Again, we evaluate expressions one by one:
+* `{_a}` - this guy is 7;
+* `{_c}` - remain unset;
+* `foo({_d})` - this would've returned `1` if `{_d}` was actually an integer, but it's not; we get nothing.
+
+We are close! `{_e}` becomes `7`. \
+And, finally, `broadcast {_e}, twice`. Does this broadcast two sevens? No! It's the 'times' expression which, here, returns the integers from 1 to 2. \
+We get the answer:
+```
+7
+1
+2
+```
+And we're done!
 </details>
