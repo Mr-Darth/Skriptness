@@ -4,12 +4,12 @@
 # This facilitates the creation of map renderers by generating a special interface which
 # can then be simply implemented by dynamic class proxies.
 #
-# This works by generating two classes: a {@delegating-class-name} which extends Bukkit's MapRenderer
-# and delegates all calls to to a {@delegate-class-name} (implemented by the user to add their own logic).
+# This works by generating two classes: a delegating map renderer which extends Bukkit's MapRenderer
+# and delegates all calls to to a delegate map renderer (implemented by the user to add their own logic).
 #
-# The user simply needs to implement the {@delegate-class-name} interface and then construct
-# a {@delegating-class-name} with the {@delegate-class-name}. The {@delegating-class-name} will then
-# forward all calls to the created {@delegate-class-name}.
+# The user simply needs to implement the delegate map renderer's interface and then construct
+# a delegating map renderer with the delegate map renderer. The delegating map renderer will then
+# forward all calls to the delegated renderer.
 
 # Authored by Mr. Darth.
 # Tested using Skript 2.6.3 and skript-reflect 2.3 on Paper 1.18.2.
@@ -104,5 +104,6 @@ effect load map classes:
 		LookupGetter.getLookup().defineClass({_delegate-bytecode})
 
 		continue
-	trigger:
+
+	trigger: # Don't do anything
 		stop
