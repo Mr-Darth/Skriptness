@@ -26,9 +26,9 @@ local expression character from [code[ ]point] %number%:
 # Returns: a string which is the output of the code
 function brainfuck(input: string) :: string:
 
-	set {_depth} to 0		# The depth in nested loops
-	set {_reader} to 0		# The current position in the input string
-	set {_pointer} to 0 	# The index of the current cell
+	set {_depth} to 0       # The depth in nested loops
+	set {_reader} to 0      # The current position in the input string
+	set {_pointer} to 0     # The index of the current cell
 
 	# Read until the end of the input string
 	while {_reader} < length of {_input}:
