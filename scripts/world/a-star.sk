@@ -66,8 +66,8 @@ function find_path(origin: location, target: location, epsilon: number = 1) :: l
 	add {@sqrt2}, {@sqrt2}, {@sqrt2}, {@sqrt2} to {_neighbour-offset-costs::*}
 
 	# Initialise data of origin node
-	set {_nodes::%{_origin-node}%::reach-score} to 0
-	set {_nodes::%{_origin-node}%::total-score} to distance between {_origin-node} and {_target-node}
+	set {_nodes.reach-score.%{_origin-node}%} to 0
+	set {_nodes.total-score.%{_origin-node}%} to distance between {_origin-node} and {_target-node}
 
 	# Quasi-priority queue of nodes to visit
 	# Might be unstable, but it should be significantly faster than sorting manually every time
@@ -84,10 +84,10 @@ function find_path(origin: location, target: location, epsilon: number = 1) :: l
 		if {_current-node} is {_target-node}:
 
 			# Reconstruct path
-			while {_nodes::%{_current-node}%::parent-node} exists:
+			while {_nodes.parent-node.%{_current-node}%} exists:
 				add 1 to {_index}
 				set {_path::%{_index}%} to {_current-node}
-				set {_current-node} to {_nodes::%{_current-node}%::parent-node}
+				set {_current-node} to {_nodes.parent-node.%{_current-node}%}
 
 			return {_path::*}
 
@@ -107,18 +107,18 @@ function find_path(origin: location, target: location, epsilon: number = 1) :: l
 			continue loop if block below {_neighbour-node} is not solid
 
 			# Compute candidate reach score
-			set {_tentative-reach-score} to {_nodes::%{_current-node}%::reach-score} + {_neighbour-offset-costs::%loop-index%}
+			set {_tentative-reach-score} to {_nodes.reach-score.%{_current-node}%} + {_neighbour-offset-costs::%loop-index%}
 
 			# Update node information if a better path is found through the current node to the neighbour
-			if {_tentative-reach-score} < {_nodes::%{_neighbour-node}%::reach-score} ? infinity value:
-				set {_old-total-score} to {_nodes::%{_neighbour-node}%::total-score}
+			if {_tentative-reach-score} < {_nodes.reach-score.%{_neighbour-node}%} ? infinity value:
+				set {_old-total-score} to {_nodes.total-score.%{_neighbour-node}%}
 
-				set {_nodes::%{_neighbour-node}%::reach-score} to {_tentative-reach-score}
-				set {_nodes::%{_neighbour-node}%::total-score} to {_tentative-reach-score} + ({_epsilon} * distance between {_neighbour-node} and {_target-node})
-				set {_nodes::%{_neighbour-node}%::parent-node} to {_current-node}
+				set {_nodes.reach-score.%{_neighbour-node}%} to {_tentative-reach-score}
+				set {_nodes.total-score.%{_neighbour-node}%} to {_tentative-reach-score} + ({_epsilon} * distance between {_neighbour-node} and {_target-node})
+				set {_nodes.parent-node.%{_neighbour-node}%} to {_current-node}
 
 				# Add the node to the open list
-				set {_open-nodes::%{_nodes::%{_neighbour-node}%::total-score}%::%{_neighbour-node}%} to {_neighbour-node}
+				set {_open-nodes::%{_nodes.total-score.%{_neighbour-node}%}%::%{_neighbour-node}%} to {_neighbour-node}
 
 				# If the node was already in the open list, remove it from the old position
 				if {_open-nodes::%{_old-total-score}%::%{_neighbour-node}%} is set:
