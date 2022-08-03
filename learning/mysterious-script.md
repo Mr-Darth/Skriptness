@@ -1,7 +1,8 @@
 # Welcome, welcome, to The Mysteryous Script! :ghost:
 This is a little puzzling script I came up with that covers various little pitfalls Skript currently has, plus a few less known features.
 
-The question is: Can you figure out what the script outputs? No cheating!
+The question is: Can you figure out what the script outputs? \
+No cheating or I will know 😡
 
 ```vbs
 variables:
@@ -36,19 +37,20 @@ on load:
 <details>
 <summary>The not-so-useless variables structure</summary>
 
-The variable structure can take in variables whose indices contain types. Let's take `{_foo::%number%} = 1` from the provided script.
+The variable structure can take in variables whose names contain types. Let's take `{_foo::%number%} = 1` from the provided script.
 > This variable is internally stored as `{_foo::<number>} = 1`.
 
-When the variable is now used, if the return type of *the expression* in the index has that type as a *first registered* supertype and the variable is not set, it defaults to `1`.
-> The first registered supertype here means either the type itself if it is available or the closest registered type.
+When the variable is now used, if the return type of *the expression* in the variable name has that type (`number`) as its *closest registered* type, it defaults to `1` when the variable is not set.
+> The closest registered type here means either the type itself if available or the closest registered supertype. \
+> For example, the type `cow` is not actually registered as a classinfo, so the closest type to `cow` is `livingentity`.
 
-*Note:* Don't be fooled by the fact that these variables accept types! Indices will still always end up as strings.
+*Note:* Don't be fooled by the fact that these variables' names accept types! Indices will still always end up as strings.
 </details>
 
 <details>
 <summary>The serial killer comma</summary>
 
-The serial comma (also known as the Oxford comma) is not properly supported by the Skript parser, so adding it to any conjunction makes it behave like `and`. This means that the `, or` in `1, 2, or 3` will be considered as `and`.
+The serial comma (also known as the Oxford comma) is not properly supported by the Skript parser, so adding it to any conjunction makes it behave like `and`. For example, this means that the `, or` in `1, 2, or 3` will be considered as `and`.
 </details>
 
 <details>
@@ -96,7 +98,8 @@ You are a disappointment.
 <details>
 <summary>Detailed explanation</summary>
 
-Let's start with the function `mystery()` because this is actually where the magic happens. \
+Let's start with the function `mystery()` because this is actually where the magic happens.
+
 We begin with setting `{_a}` to be `rounded up (2^70 + 0.5)`. Rounding returns integers evidently, so `{_a}` is now an integer (doesn't matter its value). \
 We then proceed to set `{_b}` to `{_a}`. \
 Then we multiply `{_a}` by `({_foo::%{_a}%} ? {_bar::%{_b}%})`. Let's see... Is `{_foo::%{_a}%}` set? Well, `{_a}` is an integer, integers are numbers, and we used `%number%` in the default variable. So you might be tempted to say that `{_foo::%{_a}%}` is `1`. But you would be wrong. Skript uses the return type of *the expression* in the index. For variables, it's *always* `object`. So we default to `{_bar::%{_b}%}` which is `0` because `{_b}` is indeed an object.
@@ -111,7 +114,7 @@ Okay, the next line has more expressions: `set {_a} to {_foo::%{_c}%} + {_a} + f
 * `foo({_c})` - `{_c}` is unset, we don't get anything.
 
 Thus, `{_a}` remains `7`. \
-Now, a tricky one `set {_c} to {_foo::2}`. `2` is indeed a number so you would be inclined to say the default variable actually applies here. But keep in mind the `2` here is actually a string. `{_c}` remains unset. \
+Now, a tricky one `set {_c} to {_foo::2}`. `2` is indeed a number so you would be inclined to say the default variable actually applies here. But keep in mind the `2` is not actually an expression in this case, it's part of the literal name. Because of this, the variables section is never involved, therefore `{_c}` remains unset. \
 We next set the variable `{_d}` to `{_a} / {_a}`. This is evidently `1`. But that `1` is a *number*, not an integer! Division and exponentiation *always* return numbers. \
 Again, we evaluate expressions one by one:
 * `{_a}` - this guy is 7;
