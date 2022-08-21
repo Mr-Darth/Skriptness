@@ -1,0 +1,99 @@
+# Lindenmayer systems
+#
+# Stochastic Lindenmayer systems (L-systems) deriver that expands a given
+# axiom according to the provided production rules.
+#
+# This supports only single character symbols.
+# Production rules are of the form: '<predecessor>=<successor>' or '<predecessor>(<chance>)=<successor>'.
+# If a chance is not provided, it is assumed to be 100%.
+#
+# For more information about L-systems, see:
+# https://en.wikipedia.org/wiki/L-system
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 on Paper 1.18.2.
+
+
+
+# Derives the given axiom according to the production rules.
+#
+# Parameters:
+# * string: the axiom to expand
+# * strings: the production rules
+# * number: the number of iterations to perform
+# Returns: the expanded sentence
+function derive(axiom: string, rules: strings, iterations: number = 4) :: string:
+
+	# Remove whitespace now so we don't have to worry about it later
+	replace all " " in {_axiom} with ""
+	replace all " " in {_rules::*} with ""
+
+	stop if {_axiom} or {_rules::*} is empty
+
+	# Parse each individual rule
+	loop {_rules::*}:
+
+		# Pattern: '<predecessor>(<chance>)=<successor>'
+		set {_split} to first index of "=" in loop-value
+		stop if {_split} is -1
+
+		set {_predecessor} to substring of loop-value from 1 to ({_split} - 1)
+		set {_successor} to substring of loop-value from ({_split} + 1) to length of loop-value
+
+		# Stochastic rule
+		if length of {_predecessor} is greater than 1:
+			stop if character at 2 of {_predecessor} is not "("
+			stop if last character of {_predecessor} is not ")"
+
+			set {_chance} to substring of {_predecessor} from 2 to (length of {_predecessor} - 1)
+			set {_chance} to {_chance} parsed as a number
+			stop if {_chance} is not set
+
+			set {_predecessor} to first character of {_predecessor}
+
+		# Default to a chance of 100%
+		else:
+			set {_chance} to 100%
+
+		# Find position to add rule
+		set {_index} to size of {_replacement::%{_predecessor}%::successor::*} + 1
+
+		set {_replacement::%{_predecessor}%::successor::%{_index}%} to {_successor}
+		set {_replacement::%{_predecessor}%::chance::%{_index}%} to {_chance}
+
+	# Start with the axiom
+	set {_sentence} to {_axiom}
+
+	loop {_iterations} times:
+
+		loop length of {_sentence} times:
+
+			set {_symbol} to character at loop-value-2 in {_sentence}
+
+			# Found a match for the current symbol
+			if {_replacement::%{_symbol}%::successor::*} exists:
+				set {_successor} to get_weighted_random_element(({_replacement::%{_symbol}%::successor::*}), ({_replacement::%{_symbol}%::chance::*}))
+
+			else:
+				set {_successor} to {_symbol}
+
+			set {_next-sentence} to join {_next-sentence}, {_successor}
+
+		set {_sentence} to {_next-sentence}
+
+		# Clear this iteration's information
+		clear {_next-sentence}
+
+	return {_sentence}
+
+# Returns a random element from the given list, weighted by the given chance list.
+#
+# Parameters:
+# * objects: the list of elements to choose from
+# * chances: the list of chances to assign to each element, in order
+# Returns: a random element from the list
+function get_weighted_random_element(elements: objects, weights: numbers) :: object:
+	set {_random} to random number from 0 to sum({_weights::*})
+	loop {_weights::*}:
+		return {_elements::%loop-index%} if {_random} < loop-value
+		remove loop-value from {_random}
