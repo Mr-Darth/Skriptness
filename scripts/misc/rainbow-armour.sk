@@ -25,8 +25,8 @@ options:
 # * itemtypes: a list of leather armour pieces to use
 function rainbow_armour(entity: livingentity, speed: timespan = 10 ticks, step: number = 1, armour: itemtypes = all leather armour):
 	set {_key} to unix timestamp of now
-	set metadata tag "rainbow-armour" of {_entity} to {_key}
-	while metadata tag "rainbow-armour" of {_entity} is {_key}:
+	set metadata tag {@metadata} of {_entity} to {_key}
+	while metadata tag {@metadata} of {_entity} is {_key}:
 		add {_step} to {_angle}
 		set {_r} to (sin({_angle}) + 1) * 127.5
 		set {_g} to (sin({_angle} + 120) + 1) * 127.5
@@ -37,11 +37,18 @@ function rainbow_armour(entity: livingentity, speed: timespan = 10 ticks, step: 
 
 # Stops the rainbow armour of an entity.
 # This clears the metadata value and removes all armour the entity is wearing.
+#
+# Parameters:
+# * livingentity: the entity whose armour to stop
 function stop_rainbow_armour(entity: livingentity):
-	clear metadata tag "rainbow-armour" of {_entity}
+	clear metadata tag {@metadata} of {_entity}
 	clear {_entity}'s helmet, {_entity}'s chestplate, {_entity}'s leggings, {_entity}'s boots
 
 # Returns whether an entity has rainbow armour equipped.
 # This checks the metadata value.
+#
+# Parameters:
+# * livingentity: the entity to check
+# Returns: whether the entity has rainbow armour equipped
 function has_rainbow_armour(entity: livingentity) :: boolean:
-	return true if metadata tag "rainbow-armour" of {_entity} exists, else false
+	return true if metadata tag {@metadata} of {_entity} exists, else false
