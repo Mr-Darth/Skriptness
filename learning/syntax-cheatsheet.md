@@ -23,7 +23,7 @@ Expression (type) elements support a few special modifiers.
 | `%stuff@d%` | forced time state <br> this takes in `-1` for past and `1` for future |
 | `%stuff/stuff%` | multiple allowed types |
 
-Combinations like `%~-stuff@-1%  also work.
+Combinations like `%~-stuff@-1%` also work.
 
 For multiple allowed types, the modifiers apply to *all* classes.
 
