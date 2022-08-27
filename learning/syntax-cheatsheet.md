@@ -12,6 +12,9 @@ A brief explanation of Skript's syntax format :)
 | `<stuff>` | regex pattern |
 | `(s:stuff)` <br> `(d:stuff)`, `(d¦stuff)` | parse tag <br> parse mark|
 
+### Bracketing
+Although some elements are presented above with round parentheses, they are only required for the group element. For example, `bob|rob`, `[hello|hi]`, `[:un[-| ]]ban` work as well, but it is important to remember that whitespaces are part of literal text elements: `say hi to bob|rob` would actually behave like `((say hi to bob)|(rob))`!
+
 ## Expression Modifiers
 Expression (type) elements support a few special modifiers.
 
