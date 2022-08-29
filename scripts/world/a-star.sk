@@ -71,7 +71,7 @@ function find_path(origin: location, target: location, epsilon: number = 1) :: l
 
 	# Quasi-priority queue of nodes to visit
 	# Might be unstable, but it should be significantly faster than sorting manually every time
-	set {_open-nodes::%{_nodes::%{_origin-node}%::total-score}%::%{_origin-node}%} to {_origin-node}
+	set {_open-nodes::%{_nodes.reach-score.%{_origin-node}%}%::%{_origin-node}%} to {_origin-node}
 
 	# An open nodes counter might be faster than getting all keys
 	while indices of {_open-nodes::*} exists:
