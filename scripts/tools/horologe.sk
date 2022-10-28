@@ -1,0 +1,205 @@
+# Horologe
+#
+# A simple and efficient scheduling system for handling restart-persistent tasks.
+#
+# A task is uniquely identified by its string identifier and the task group it belongs to.
+# A task group is a collection of multiple tasks for easier management.
+# Tasks without an explicit group are assigned to the default group defined below.
+#
+# A task can be run one time or repeatedly, at specific intervals.
+# Tasks can be removed from the scheduler at any time by their identifier and group.
+#
+# When a task reaches its completion date, an event is triggered.
+# Repeated tasks are automatically rescheduled for the next run.
+#
+# When a task is started, the scheduler attempts to wait until the completion date of the task.
+# The scheduler is implemented to restart all unfinished tasks on server startup.
+#
+# A task that completes while the server is offline will be automatically marked as finished
+# when the scheduler is started again, and an event will be triggered.
+#
+# All information about a task can be accessed using the task identifier and group.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.6.3 and skript-reflect 2.3 on Paper 1.18.2.
+
+
+
+options:
+    # The default task group.
+    # A task without an explicitly defined group is assigned to this group.
+    default-task-group: "default"
+
+    # The variable in which to store tasks.
+    task-storage: horologe::tasks
+
+# Checks whether a task is registered.
+condition:
+    patterns:
+        task[s] [with id[s]] %strings% [(from|in) [task] group %-string%] [1:(doesn't|does not|do not|don't)] exist[s]
+        task[s] [with id[s]] %strings% [(from|in) [task] group %-string%] (is|are)[1:( not|n't)] (scheduled|registered)
+    check:
+        set {_group} to expr-2 ? {@default-task-group}
+        if parser mark is 0:
+            continue if indices of {{@task-storage}::%{_group}%::*} contains exprs-1
+        else:
+            loop exprs-1:
+                stop if {{@task-storage}::%{_group}%::%loop-value%::*} exists
+            continue
+
+# Checks whether a task is repeatable.
+condition task[s] [with id[s]] %strings% [(from|in) [task] group %-string%] (is|are)[1:( not|n't)] repeatable:
+    check:
+        set {_group} to expr-2 ? {@default-task-group}
+        if parser mark is 0:
+            loop exprs-1:
+                stop if {{@task-storage}::%{_group}%::%loop-value%::repeat} is not set
+        else:
+            loop exprs-1:
+                stop if {{@task-storage}::%{_group}%::%{_id}%::repeat} is set
+        continue
+
+# Returns the repetition period of a task.
+# If the task is not repeatable, the result will not be set.
+expression repeat[ing] (interval|period) of task[s] [with id[s]] %$strings% [(from|in) [task] group %-string%]:
+    return type: timespans
+    get:
+        set {_group} to expr-2 ? {@default-task-group}
+        loop exprs-1:
+            add 1 to {_index}
+            set {_intervals::%{_index}%} to {{@task-storage}::%{_group}%::%loop-value%::repeat}
+        return {_intervals::*}
+
+# Returns the completion date of a task.
+# If the task is repeatable, the result will be the next run date.
+expression (completion|finishing) date of task[s] [with id[s]] %$strings% [(from|in) [task] group %-string%]:
+    return type: dates
+    get:
+        set {_group} to expr-2 ? {@default-task-group}
+        loop exprs-1:
+            add 1 to {_index}
+            set {_dates::%{_index}%} to {{@task-storage}::%{_group}%::%loop-value%::completion}
+        return {_dates::*}
+
+
+# Returns the identifier of all tasks in a group.
+expression [(the|all [[of] the])] (tasks|task ids) (in|of) [task] group %string%:
+    return type: strings
+    get:
+        return indices of {{@task-storage}::%expr-1%::*}
+
+# Returns all currently available task groups.
+expression [(the|all [[of] the])] task groups:
+    return type: strings
+    get:
+        return indices of {{@task-storage}::*}
+
+# Event triggered when a task is completed.
+# An optional group restriction can be specified.
+#
+# It is important to note that after a task is completed, it will be removed from
+# the scheduler, so any information about the task will be lost. If it is necessary
+# to obtain the task information, it should be stored in a variable before any
+# delays in the trigger.
+event "TaskFinished":
+    pattern: task [in group %-string%] (finished|finishing|completed|completing)
+    check:
+        if expr-1 is not set:
+            continue
+        if event-data "group" is expr-1:
+            continue
+
+# Returns the identifier of the task that was completed in the event.
+expression [event-]task[[ ]id]:
+    return type: string
+    usable in:
+        custom event "TaskFinished"
+    get:
+        return event.getData("id")
+
+# Returns the group of the task that was completed in the event.
+expression [event-]task[[ ]group]:
+    return type: string
+    usable in:
+        custom event "TaskFinished"
+    get:
+        return event.getData("group")
+
+# Waits for a task to complete and then calls the completion event for the task.
+local effect refresh task[s] [with id[s]] %strings% [(from|in) [task] group %-string%]:
+    parse:
+        # Self-calling section to skip waiting
+        create new section with {_id}, {_group}, {_completion}, {_section} stored in {_timer}:
+            stop if {{@task-storage}::%{_group}%::%{_id}%::*} does not exist
+
+            # If the completion date is in the past, the task is completed; do not wait.
+            if {_completion} > now:
+                wait difference between {_completion} and now
+
+            # Ensure the task date is correct.
+            # This is necessary in case the task has been unregistered in the meantime
+            # or has been rescheduled with a later date.
+            stop if {_completion} is not {{@task-storage}::%{_group}%::%{_id}%::completion}
+
+            # Construct and fire the event
+            set {_data::id} to {_id}
+            set {_data::group} to {_group}
+            call custom event "TaskFinished" with data {_data::*}
+
+            # Reschedule repeatable tasks.
+            if {{@task-storage}::%{_group}%::%{_id}%::repeat} is set:
+                set {_time} to {{@task-storage}::%{_group}%::%{_id}%::repeat}
+                set {{@task-storage}::%{_group}%::%{_id}%::completion} to {_time} from now
+                run section {_section} with {_id}, {_group}, {{@task-storage}::%{_group}%::%{_id}%::completion}, {_section}
+
+            else:
+                delete {{@task-storage}::%{_group}%::%{_id}%::*}
+
+        continue
+    trigger:
+        set {_group} to expr-2 ? {@default-task-group}
+        loop exprs-1:
+            run section {_timer} with loop-value, {_group}, {{@task-storage}::%{_group}%::%loop-value%::completion}, {_timer}
+
+# Registers a new task to the scheduler.
+# If a task with the same identifier and group already exists, it will not be overwritten.
+# If the completion date of the task is in the past, the task will not be registered.
+effect:
+    patterns:
+        (create|register|schedule) [a] [new] task [with id] %string% [in [task] group %-string%] for %date%
+        (create|register|schedule) [a] [new] [repeatable] task [with id] %string% [in [task] group %-string%] [for] every %timespan%
+    trigger:
+        set {_id} to expr-1
+        set {_group} to expr-2 ? {@default-task-group}
+        set {_period} to expr-3
+
+        # Do not overwrite task if it already exists.
+        stop if {{@task-storage}::%{_group}%::%{_id}%::*} exists
+
+        # Repeatable task
+        if {_period} is a timespan:
+            set {{@task-storage}::%{_group}%::%{_id}%::completion} to {_period} later
+            set {{@task-storage}::%{_group}%::%{_id}%::repeat} to {_period}
+
+        # Fixed date task
+        else if {_period} is a date:
+            stop if {_period} < now # Do not register tasks in the past.
+            set {{@task-storage}::%{_group}%::%{_id}%::completion} to {_period}
+
+        refresh task {_id} from group {_group} # Start waiting.
+
+# Removes a task from the scheduler.
+# Tasks that are removed before they are completed will not fire the completion event when
+# the completion date is reached.
+effect (cancel|stop|unregister|unschedule) task [with id] %string% [(from|in) [task] group %-string%]:
+    trigger:
+        set {_group} to expr-2 ? {@default-task-group}
+        loop exprs-1:
+            if {{@task-storage}::%{_group}%::%loop-value%::*} exists: # Limit variable change queue pollution.
+                delete {{@task-storage}::%{_group}%::%loop-value%::*}
+
+# Starting the scheduler on startup.
+on skript load:
+    loop indices of {{@task-storage}::*}:
+        loop indices of {{@task-storage}::%loop-value%::*}:
+            refresh task loop-value-2 from group loop-value-1
