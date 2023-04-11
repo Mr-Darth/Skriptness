@@ -1,5 +1,6 @@
 # Welcome, welcome, to The Mysteryous Script! :ghost:
-This is a little puzzling script I came up with that covers various little pitfalls Skript currently has, plus a few less known features.
+This is a little puzzling script I came up with that covers various little pitfalls Skript currently has, plus a few less known features. \
+It was created and tested on version 2.6.4 of [SkriptLang's Skript](https://github.com/SkriptLang/Skript). Because it relies on some very funky and less-known behaviour of Skript, future updates can easily affect it, leading to different results.
 
 The question is: Can you figure out what the script outputs? \
 No cheating or I will know 😡
