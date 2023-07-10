@@ -2,15 +2,15 @@
 A brief explanation of Skript's syntax format :)
 
 ## Pattern Elements
-| Element | Description |
-| ------- | ----------- |
-| `stuff` | literal text |
-| `(stuff)` | group (used to bundle together multiple elements) |
-| `(stuff\|stuff)` | choice |
-| `[stuff]` | optional |
-| `%stuff%` | expression of certain type |
-| `<stuff>` | regex pattern |
-| `(s:stuff)` <br> `(d:stuff)`, `(d¦stuff)` | parse tag <br> parse mark|
+| Element                                   | Description                                       |
+|-------------------------------------------|---------------------------------------------------|
+| `stuff`                                   | literal text                                      |
+| `(stuff)`                                 | group (used to bundle together multiple elements) |
+| `(stuff&#124;stuff)`                      | choice                                            |
+| `[stuff]`                                 | optional                                          |
+| `%stuff%`                                 | expression of certain type                        |
+| `<stuff>`                                 | regex pattern                                     |
+| `(s:stuff)` <br> `(d:stuff)`, `(d¦stuff)` | parse tag <br> parse mark                         |
 
 ### Bracketing
 Although some elements are presented above with round parentheses, they are only required for the group element. For example, `bob|rob`, `[hello|hi]`, `[:un[-| ]]ban` work as well, but it is important to remember that whitespaces are part of literal text elements: `say hi to bob|rob` would actually behave like `((say hi to bob)|(rob))`!
@@ -18,13 +18,13 @@ Although some elements are presented above with round parentheses, they are only
 ## Expression Modifiers
 Expression (type) elements support a few special modifiers.
 
-| Modifier | Description |
-| -------- | ----------- |
-| `%*stuff%` | literal |
-| `%~stuff%` | non-literal |
-| `%-stuff%` | nullable |
-| `%stuff@d%` | forced time state <br> this takes in `-1` for past and `1` for future |
-| `%stuff/stuff%` | multiple allowed types |
+| Modifier        | Description                                                           |
+|-----------------|-----------------------------------------------------------------------|
+| `%*stuff%`      | literal                                                               |
+| `%~stuff%`      | non-literal                                                           |
+| `%-stuff%`      | nullable                                                              |
+| `%stuff@d%`     | forced time state <br> this takes in `-1` for past and `1` for future |
+| `%stuff/stuff%` | multiple allowed types                                                |
 
 Combinations like `%~-stuff@-1%` also work.
 
@@ -47,3 +47,7 @@ Multiple matched parse marks get [XOR](https://en.wikipedia.org/wiki/Bitwise_ope
 Parse tags can also "infer" content if they are empty. \
 When the next element is a literal element, the tag becomes the content of the literal element: `(:foo|:BOO)` -> tag becomes the used variation in *lowercase*. \
 When the next element is a (grouped) choice element, the tag becomes whatever variation was used (again, in lowercase).
+
+## Useful Links
+* [Skript Syntax Parse Order](https://github.com/Mr-Darth/Skriptness/blob/master/learning/parsing-order.md)
+* [Skript Pattern Calculator](https://bi0qaw.github.io/skript-pattern-calculator/)
