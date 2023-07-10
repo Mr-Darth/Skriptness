@@ -1,0 +1,126 @@
+# (2D) Perlin noise generator
+#
+# This is an implementation of Ken Perlin's Perlin noise in two dimensions,
+# using distinct seeded generator instances with configurable lattice size.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.7.0-beta3 on Paper 1.19.4.
+
+
+
+options:
+    # The default size of the permutation table.
+    # It must be a power of 2.
+    default-permutation-table-size: 256
+
+# Constructs a new seeded noise generator.
+# The permutation table size must be a power of 2.
+#
+# Parameters:
+# * number: the seed of this generator
+# * number: the size of the permutation table used by this generator
+# Returns: a new generator
+function construct_generator(seed: number = {_none}, table-size: number = {@default-permutation-table-size}) :: object:
+    do while {-perlin::%{_generator}%::*} exists:
+        set {_generator} to a random uuid
+    set {_seed} to random integer from 0 to 281474976710656 if {_seed} is not set
+    set {-perlin::%{_generator}%::seed} to {_seed}
+    set {-perlin::%{_generator}%::table-size} to {_table-size}
+    set {_table::*} to all integers from 0 to {_table-size} - 1
+    loop {_table-size} - 1 times:
+
+        # This uses a linear congruential generator with the same parameters as those of java.lang.Random.
+        # It, however, does not return the same values as an identically-seeded instance of the JDK class.
+        set {_seed} to rounded down mod({_seed} * 25214903917 + 11, 281474976710655)
+        set {_index} to rounded down ({_seed} / (281474976710656 / {_table-size}))
+
+        # Fisher-Yates shuffle
+        set {_copy} to {_table::%loop-value%}
+        set {_table::%loop-value%} to {_table::%{_index}%}
+        set {_table::%{_index}%} to {_copy}
+
+    set {-perlin::%{_generator}%::table::*} to {_table::*} and {_table::*}
+    return {_generator}
+
+# Deletes a generator instance.
+#
+# Parameters:
+# * object: the generator
+function discard_generator(generator: object):
+    delete {-perlin::%{_generator}%::*} if {-perlin::%{_generator}%::*} exists
+
+# Computes the noise value at the given grid coordinates, using the provided generator.
+#
+# Parameters:
+# * object: the generator
+# * number: the x grid coordinate
+# * number: the y grid coordinate
+# Returns: the noise value
+function noise2D(generator: object, x: number, y: number) :: number:
+    set {_table-size} to {-perlin::%{_generator}%::table-size}
+    set {_floor-x} to rounded down {_x}
+    set {_floor-y} to rounded down {_y}
+    remove {_floor-x} from {_x}
+    remove {_floor-y} from {_y}
+    set {_unit-square-x} to mod({_floor-x}, {_table-size}) + 1
+    set {_unit-square-y} to mod({_floor-y}, {_table-size}) + 1
+    set {_index-bottom-left} to {-perlin::%{_generator}%::table::%{_unit-square-x}%} + {_unit-square-y}
+    set {_index-bottom-right} to {-perlin::%{_generator}%::table::%{_unit-square-x} + 1%} + {_unit-square-y}
+    set {_gradient-bottom-left} to grad({-perlin::%{_generator}%::table::%{_index-bottom-left}%}, {_x}, {_y})
+    set {_gradient-bottom-right} to grad({-perlin::%{_generator}%::table::%{_index-bottom-right}%}, ({_x} - 1), {_y})
+    set {_gradient-top-left} to grad({-perlin::%{_generator}%::table::%{_index-bottom-left} + 1%}, {_x}, ({_y} - 1))
+    set {_gradient-top-right} to grad({-perlin::%{_generator}%::table::%{_index-bottom-right} + 1%}, ({_x} - 1), ({_y} - 1))
+    set {_fade-x} to fade({_x})
+    return lerp(fade({_y}), lerp({_fade-x}, {_gradient-bottom-left}, {_gradient-bottom-right}), lerp({_fade-x}, {_gradient-top-left}, {_gradient-top-right}))
+
+# Samples the ease curve at a specific point.
+#
+# Parameters:
+# * number: the coordinate
+# Returns: the value of the fade function
+local function fade(x: number) :: number:
+    return {_x} ^ 3 * (({_x} * (({_x} * 6) - 15)) + 10)
+
+# Linearly interpolates between two numbers.
+#
+# Parameters:
+# * number: the interpolation factor, in [0; 1]
+# * number: the start value
+# * number: the end value
+# Returns:
+local function lerp(x: number, y: number, z: number) :: number:
+    return {_y} + {_x} * ({_z} - {_y})
+
+# Calculates the dot product between a given vector (in components)
+# and one of the 4 pre-determined gradient vectors.
+#
+# Parameters:
+# * number: the 'hash' value which is used to pick the gradient vector
+# * number: the x component of the given vector
+# * number: the y component of the given vector
+# Returns: the dot product between the given vector and a gradient vector
+local function grad(hash: number, x: number, y: number) :: number:
+    set {_hash} to mod({_hash}, 4)
+    return {_x} + {_y} if {_hash} is 0 # ( 1,  1)
+    return {_y} - {_x} if {_hash} is 1 # (-1,  1)
+    return {_x} - {_y} if {_hash} is 2 # ( 1, -1)
+    return -1 * ({_x} + {_y})          # (-1, -1)
+
+# Example code
+command /testperlinnoise2d <size-x:integer>,[ ]<size-z:integer>[,[ ]factor <factor:number=55>][,[ ]seed <seed:integer>]:
+    trigger:
+        set {_start-time} to now
+        set {_generator} to construct_generator({_seed})
+        set {_position} to player's location
+        loop {_size-x} times:
+            loop {_size-z} times:
+                set {_x} to (loop-value-1 / 100)
+                set {_y} to (loop-value-2 / 100)
+                set {_noise} to noise2D({_generator}, {_x}, {_y})
+                set block {_factor} * {_noise} metres above {_position} to grass block
+                add 1 to z-coordinate of {_position}
+            add 1 to x-coordinate of {_position}
+            remove {_size-z} from z-coordinate of {_position}
+            wait a tick
+        broadcast "&7| &aDone in %time since {_start-time}%!"
+        discard_generator({_generator}) # Clean-up
