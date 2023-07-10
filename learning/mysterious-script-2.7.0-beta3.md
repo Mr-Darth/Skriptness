@@ -1,10 +1,10 @@
 # Welcome, welcome, to The _NEW_ Mysterious Script! :ghost:
-This is an updated version of the [old myserious script](https://github.com/Mr-Darth/Skriptness/blob/master/learning/mysterious-script.md). It covers various little pitfalls Skript has, plus a few less known features. 
+This is an updated version of the [old myserious script](https://github.com/Mr-Darth/Skriptness/blob/master/learning/mysterious-script.md). It covers various little pitfalls Skript has, plus a few less known features.
 
 > **Note** \
 This script was created for version `2.7.0-beta3` of [SkriptLang's Skript](https://github.com/SkriptLang/Skript). Because it relies on some very funky and less-known behaviour of Skript, future updates can easily affect it, leading to different results.
 
-The question is: Can you figure out what the script outputs? 
+The question is: Can you figure out what the script outputs?
 > **Warning** \
 No cheating or I will know 😡😡😡
 
@@ -77,12 +77,19 @@ Think of list variables as trees. When you have stuff like `{_a::hello::bob}` an
 
 <details>
 <summary>Wait!</summary>
-
-I'll be with you in *no time*!
+There are two calls to the function, so be careful with the order. \
+Hold on! I left the stove on! I'll be with you in *no time*!
 
 `wait ...`
 
 ...?
+</details>
+
+<details>
+<summary>Epsilon</summary>
+
+`69` is the same as `68.99999999991`!
+> ~~r/unexpectedfactorial~~
 </details>
 
 <details>
@@ -144,7 +151,7 @@ not timespan
 <summary>Detailed explanation</summary>
 
 Let's look into the `helper` function first.
-> Totally unrelated, did you notice the argument is a non-literal? 😱 
+> Totally unrelated, did you notice the argument defaults to a non-literal? 😱
 
 As stated in the hints, the local variable token has to be part of the literal variable name for the variable to actually be local:
 ```vb
@@ -154,7 +161,7 @@ As stated in the hints, the local variable token has to be part of the literal v
 So, looks like the line `return {%{_choice}%}` doesn't give us anything.
 
 Now into the juicy part... the `mystery` function! \
-We found out that `set {_duration} to helper()` is a LIE!!! The variable will, in fact, not be set. \
+We found out that `set {_duration} to helper()` is a LIE!!! The variable will, in fact, not be set.
 
 The next interesting, but trivial line is: `set {_very::weird} to sum(length of ({_very::much::mystery} and {_very::weird::skript}))`. The variable is going to be `12`.
 
@@ -164,7 +171,7 @@ Now, `set {_size} to recursive size of {_very::weird::*}`. Let's inspect how the
 {
     "much": {
         "mystery": "indeed"
-    }, 
+    },
     "weird": {
         null: 12.0, # Why null?!? Because this is how variables work :)
         "skript": "always"
@@ -178,7 +185,7 @@ Next, `delete {_very::weird::skript}`. Let's see what happens:
 {
     "much": {
         "mystery": "indeed"
-    }, 
+    },
     "weird": {
         null: 12.0
     }
@@ -186,11 +193,12 @@ Next, `delete {_very::weird::skript}`. Let's see what happens:
 ```
 > There is another closely related issue: Skript does not clear parent branches even if they start leading to nothing.
 
-Since the first call uses `0` as the argument, we enter the first conditional block. We then see: `if ({_size} - 2) is 10^-11`. I didn't add a hint for this because I didn't want to ruin all the fun in the hints (or because I forgot and I don't want to go back). Essentially, Skript has a margin of error when comparing numbers (because of floating point craziness). This margin is `1E-10`. Since `{_size} - 2` is `0` and `0` is close enough to `10^-11`, they are considered equal.
+Since the first call uses `0` as the argument, we enter the first conditional block. We then see: `if ({_size} - 2) is 10^-11`. Essentially, Skript has a margin of error when comparing numbers (because of floating point craziness). This margin is `1E-10`. Since `{_size} - 2` is `0` and `0` is close enough to `10^-11`, they are considered equal.
 
 Then we have `set {_result} to join (indices of {_very::*}) by " "`. If you look just above, you can see that the indices of the list are `"much"` and `"weird"`. When joined, we get `"much weird"`.
 
 A tricky one... `wait {_duration}`. We know the duration is not set. And if we try to wait a null amount of time, well... Skript just stops :grimacing:
+> Ah, we love memory leaks!
 
 The first call gives us absolutely nothing! It all depends on `mystery(3405688843)`. (Bonus points if you know what that number means :sunglasses:)
 
@@ -200,7 +208,7 @@ We will ignore the stuff that we already went over and jump straight to `set {_t
 Next, `{_time}` is definitely NOT `"bananas"`.
 
 Now, timespans have a less-known, albeit documented pattern: `[###:]##:##[.####] ([hours:]minutes:seconds[.milliseconds])` :scream: \
-So, `05:00:00` is `5 hours` - definitely not `5 am or 5 pm`. 
+So, `05:00:00` is `5 hours` - definitely not `5 am or 5 pm`.
 
 The loop then just checks if any of the looped values is `0 pm - 9 pm` and broadcast whether the matching values are a timespan or not.
 > `loop-value ? {_hmm...}` is just a little trick that you can safely ignore (bad type handling) :)
