@@ -7,4 +7,4 @@ Skriptness is a collection of various Skript-related resources that I've accumul
 
 I've tried my best to nicely organise everything by its purpose/topic and provide detailed descriptions and explanations of all content.
 
-If you find any errors, feel free to contact me on Discord: `Mr. Darth#9169`.
+If you find any errors, feel free to contact me on Discord: `mr_darth`.
