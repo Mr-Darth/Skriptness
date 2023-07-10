@@ -1,5 +1,5 @@
 # Welcome, welcome, to The _NEW_ Mysterious Script! :ghost:
-This is an updated version of the [old myserious script](https://github.com/Mr-Darth/Skriptness/blob/master/learning/mysterious-script.md). It covers various little pitfalls Skript has, plus a few less known features.
+This is an updated version of the [old mysterious script](https://github.com/Mr-Darth/Skriptness/blob/master/learning/mysterious-script.md). It covers various little pitfalls Skript has, plus a few less known features.
 
 > **Note** \
 This script was created for version `2.7.0-beta3` of [SkriptLang's Skript](https://github.com/SkriptLang/Skript). Because it relies on some very funky and less-known behaviour of Skript, future updates can easily affect it, leading to different results.
