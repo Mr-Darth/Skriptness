@@ -30,7 +30,7 @@ function mystery(value: integer = 0):
     set {_size} to recursive size of {_very::weird::*}
     delete {_very::weird::skript}
     if {_value} is 0:
-        if ({_size} / {_size}) is 1 + 10^-11:
+        if {_size}, ({_size} - 1) or ({_size} - 2) is 10^-11:
             set {_result} to join (indices of {_very::*}) by " "
             wait {_duration}
             broadcast "%{_result}%"
@@ -201,7 +201,7 @@ Next, `delete {_very::weird::skript}`. Let's see what happens:
 ```
 > There is another closely related issue: Skript does not clear branches leading to nothing.
 
-Since the first call uses `0` as the argument, we enter the first conditional block. We then see: `if ({_size} / {_size}) is 1 + 10^-11`. Essentially, Skript has a margin of error when comparing numbers (because of floating point craziness). This margin is `1E-10`. Since `{_size} / {_size}` is `1` and `1` is close enough to `1 + 10^-11`, they are considered equal.
+Since the first call uses `0` as the argument, we enter the first conditional block. We then see: `if {_size}, ({_size} - 1) or ({_size} - 2) is 10^-11`. Essentially, Skript has a margin of error when comparing numbers (because of floating point craziness). This margin is `1E-10`. Since `{_size} - 2` is `0` and `0` is close enough to `10^-11`, they are considered equal.
 
 Then we have `set {_result} to join (indices of {_very::*}) by " "`. If you look just above, you can see that the indices of the list are `"much"` and `"weird"`. When joined, we get `"much weird"`.
 
