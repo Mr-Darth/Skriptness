@@ -60,14 +60,21 @@ on load:
 # Hints
 <details>
 <summary>Vectors and directions: two sides of the same coin</summary>
-Vectors are, when needed and when applicable, converted to directions, but not vice versa. It's not actually the case in the commented line. I'm so evil :smiling_imp:
 
+Vectors are, when needed and when applicable, converted to directions, but not vice versa. It's not actually the case in the commented line. I'm so evil :smiling_imp:
 </details>
 
 <details>
 <summary>Ninja variables 🥷</summary>
 
 The local variable token (`_`) has to be part of the literal variable name, for the variable to be local.
+</details>
+
+<details>
+<summary>McDonald's: Introducing McTime</summary>
+
+Timespans can be created in relation to the Minecraft world time. \
+A single Minecraft second is about 14 milliseconds.
 </details>
 
 <details>
