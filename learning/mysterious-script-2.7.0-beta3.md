@@ -30,12 +30,13 @@ function mystery(value: integer = 0):
     set {_size} to recursive size of {_very::weird::*}
     delete {_very::weird::skript}
     if {_value} is 0:
-        if ({_size} - 2) is 10^-11:
+        if ({_size} / {_size}) is 1 + 10^-11:
             set {_result} to join (indices of {_very::*}) by " "
             wait {_duration}
             broadcast "%{_result}%"
         else:
             broadcast helper(vector 0, 1, 2)
+        broadcast "hello mom" if infinity > {_value}, else "hello dad"
     set {_time} to 10:00
     if {_time} is between 07:00 and 06:00:
         broadcast "yay!!!"
@@ -45,7 +46,7 @@ function mystery(value: integer = 0):
     if {_time} is 5 am or 5 pm:
         broadcast 200
     loop 9 hours, 9 mc hours and 9 pm:
-        if loop-value ? {_hmm...} is 0 pm - 9 pm:
+        if loop-value ? {_hmm...} is 0 pm - 9 pm: # You can ignore the default value
             if loop-value is a timespan:
                 broadcast "timespan"
             else:
@@ -76,7 +77,15 @@ Think of list variables as trees. When you have stuff like `{_a::hello::bob}` an
 </details>
 
 <details>
+<summary>Epsilon</summary>
+
+`69` is the same as `68.99999999991`!
+> ~~r/unexpectedfactorial~~
+</details>
+
+<details>
 <summary>Wait!</summary>
+
 There are two calls to the function, so be careful with the order. \
 Hold on! I left the stove on! I'll be with you in *no time*!
 
@@ -86,10 +95,9 @@ Hold on! I left the stove on! I'll be with you in *no time*!
 </details>
 
 <details>
-<summary>Epsilon</summary>
+<summary>Unlimited power!</summary>
 
-`69` is the same as `68.99999999991`!
-> ~~r/unexpectedfactorial~~
+`infinity` is probably not what you expect it to be.
 </details>
 
 <details>
@@ -178,7 +186,7 @@ Now, `set {_size} to recursive size of {_very::weird::*}`. Let's inspect how the
     }
 }
 ```
-So the recursive size (because it checks the tree of the variable) is `2`.
+So the recursive size is `2`, since it checks the tree of the variable.
 
 Next, `delete {_very::weird::skript}`. Let's see what happens:
 ```
@@ -191,16 +199,16 @@ Next, `delete {_very::weird::skript}`. Let's see what happens:
     }
 }
 ```
-> There is another closely related issue: Skript does not clear parent branches even if they start leading to nothing.
+> There is another closely related issue: Skript does not clear branches leading to nothing.
 
-Since the first call uses `0` as the argument, we enter the first conditional block. We then see: `if ({_size} - 2) is 10^-11`. Essentially, Skript has a margin of error when comparing numbers (because of floating point craziness). This margin is `1E-10`. Since `{_size} - 2` is `0` and `0` is close enough to `10^-11`, they are considered equal.
+Since the first call uses `0` as the argument, we enter the first conditional block. We then see: `if ({_size} / {_size}) is 1 + 10^-11`. Essentially, Skript has a margin of error when comparing numbers (because of floating point craziness). This margin is `1E-10`. Since `{_size} / {_size}` is `1` and `1` is close enough to `1 + 10^-11`, they are considered equal.
 
 Then we have `set {_result} to join (indices of {_very::*}) by " "`. If you look just above, you can see that the indices of the list are `"much"` and `"weird"`. When joined, we get `"much weird"`.
 
 A tricky one... `wait {_duration}`. We know the duration is not set. And if we try to wait a null amount of time, well... Skript just stops :grimacing:
 > Ah, we love memory leaks!
 
-The first call gives us absolutely nothing! It all depends on `mystery(3405688843)`. (Bonus points if you know what that number means :sunglasses:)
+Because everything stopped, the first call gives us absolutely nothing! It all depends on `mystery(3405688843)`. (Bonus points if you know what that number means :sunglasses:) For the curious, `infinity` is an enchantment.
 
 We will ignore the stuff that we already went over and jump straight to `set {_time} to 10:00`. \
 `10:00` is unfortunately not between 07:00 and 06:00, according to Skript. It's an [old bug](https://github.com/SkriptLang/Skript/issues/1354).
