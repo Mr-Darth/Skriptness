@@ -1,0 +1,75 @@
+# Bit-wise manipulation of 64-bit integers
+#
+# A collection of functions designed for low-level manipulation of 64-bit
+# signed integers in Skript.
+#
+# Motivation:
+# Because of Skript's weak-typing and inconsistency, a simple, straightforward
+# implementation is not entirely reliable, especially with large values. These
+# functions have been adapted to work on Skript and account for (most of) the
+# conversions from floating-point types to integral types and vice versa, in such
+# a way that information is not lost, thus keeping results consistent.
+
+# Authored by Mr. Darth.
+# Tested using Skript 2.7.0-beta3 on Paper 1.20.1
+
+
+
+# Returns the 64 bits of a signed integer.
+#
+# Parameters:
+# * integer: the integer
+# Returns: the 64 bits of the integer
+function bits(n: integer) :: integers:
+    # Negative input
+    if {_n} < 0:
+        set {_bits::64} to 1 # Set sign bit
+        set {_n} to -1 * int({_n}) # Use absolute value
+    else:
+        set {_bits::64} to 0
+
+    # Convert the absolute value of the input to bits
+    # ... input is too big to work with; manually set second to last bit
+    if {_n} >= 4611686018427387904:
+        set {_n} to int({_n}) - 4611686018427387904
+        set {_bits::63} to 1
+    else:
+        set {_bits::63} to 0
+    # ... continue normally
+    loop integers from 62 to 1:
+        set {_power} to int(2 ^ (loop-integer - 1))
+        if int({_n}) >= int({_power}):
+            set {_n} to int({_n}) - int({_power})
+            set {_bits::%loop-integer%} to 1
+        else:
+            set {_bits::%loop-integer%} to 0
+
+    # Convert to two's complement if input was negative
+    if {_bits::64} is 1:
+        loop integers from 1 to 63:
+            if {_flag} is true:
+                set {_bits::%loop-value%} to 1 if {_bits::%loop-value%} is 0, else 0
+            else:
+                set {_flag} to true if {_bits::%loop-value%} is 1
+
+    return {_bits::*}
+
+
+# Re-creates a signed 64-bit integer from its bits.
+#
+# Parameters:
+# * integers: the bits
+# Returns: the reconstructed integer
+function integer(bits: integers) :: integer:
+    loop integers from 63 to 1:
+        set {_n} to int({_n}) + int({_bits::%loop-value%} ? 0) * int(2 ^ (loop-value - 1))
+    return {_n} if {_bits::64} is not 1, else -9223372036854775808 + int({_n})
+
+# Converts a generic number value to integer.
+# This helps with parse-time type choosing.
+#
+# Parameters:
+# * number: the number
+# Returns: the number converted to an integer
+local function int(number: number) :: integer:
+    return {_number}
