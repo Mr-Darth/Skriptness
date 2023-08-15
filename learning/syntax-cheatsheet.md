@@ -6,7 +6,7 @@ A brief explanation of Skript's syntax format :)
 |-------------------------------------------|---------------------------------------------------|
 | `stuff`                                   | literal text                                      |
 | `(stuff)`                                 | group (used to bundle together multiple elements) |
-| `(stuff&#124;stuff)`                      | choice                                            |
+| <code>(stuff&#124;stuff)</code>           | choice                                            |
 | `[stuff]`                                 | optional                                          |
 | `%stuff%`                                 | expression of certain type                        |
 | `<stuff>`                                 | regex pattern                                     |
