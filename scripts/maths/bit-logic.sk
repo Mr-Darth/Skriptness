@@ -1,7 +1,7 @@
-# Bit-wise manipulation of 64-bit integers
+# Bit-wise manipulation of integers
 #
-# A collection of functions designed for low-level manipulation of 64-bit
-# signed integers in Skript.
+# A collection of functions designed for low-level manipulation of N-bit
+# signed integers in Skript. These function support sizes up to 64 bits.
 #
 # Motivation:
 # Because of Skript's weak-typing and inconsistency, a simple, straightforward
@@ -15,28 +15,33 @@
 
 
 
-# Returns the 64 bits of a signed integer.
+# Returns the bits of a signed integer.
 #
 # Parameters:
 # * integer: the integer
-# Returns: the 64 bits of the integer
-function bits(n: integer) :: integers:
+# * integer: the size of the integer (in bits); if not in [1; 64], this defaults to 64
+# Returns: the bits of the integer
+function bits(n: integer, size: integer = 64) :: integers:
+    # Default to 64
+    set {_size} to 64 if {_size} is not between 1 and 64
+
     # Negative input
     if {_n} < 0:
-        set {_bits::64} to 1 # Set sign bit
+        set {_bits::%{_size}%} to 1 # Set sign bit
         set {_n} to -1 * int({_n}) # Use absolute value
     else:
-        set {_bits::64} to 0
+        set {_bits::%{_size}%} to 0
 
     # Convert the absolute value of the input to bits
-    # ... input is too big to work with; manually set second to last bit
-    if {_n} >= 4611686018427387904:
-        set {_n} to int({_n}) - 4611686018427387904
-        set {_bits::63} to 1
-    else:
-        set {_bits::63} to 0
+    # ... input is too big to work with correctly
+    if {_size} > 62:
+        if {_n} >= 4611686018427387904:
+            set {_n} to int({_n}) - 4611686018427387904
+            set {_bits::63} to 1
+        else:
+            set {_bits::63} to 0
     # ... continue normally
-    loop integers from 62 to 1:
+    loop integers from min({_size} - 1, 62) to 1:
         set {_power} to int(2 ^ (loop-integer - 1))
         if int({_n}) >= int({_power}):
             set {_n} to int({_n}) - int({_power})
@@ -45,8 +50,8 @@ function bits(n: integer) :: integers:
             set {_bits::%loop-integer%} to 0
 
     # Convert to two's complement if input was negative
-    if {_bits::64} is 1:
-        loop integers from 1 to 63:
+    if {_bits::%{_size}%} is 1:
+        loop integers from 1 to {_size} - 1:
             if {_flag} is true:
                 set {_bits::%loop-value%} to 1 if {_bits::%loop-value%} is 0, else 0
             else:
@@ -55,15 +60,21 @@ function bits(n: integer) :: integers:
     return {_bits::*}
 
 
-# Re-creates a signed 64-bit integer from its bits.
+# Re-creates a signed integer from its bits.
 #
 # Parameters:
 # * integers: the bits
+# * integer: the desired size of the integer (in bits); if not in [1; 64], this defaults to 64
 # Returns: the reconstructed integer
-function integer(bits: integers) :: integer:
-    loop integers from 63 to 1:
+function integer(bits: integers, size: integer = 64) :: integer:
+    # Default to 64
+    set {_size} to 64 if {_size} is not between 1 and 64
+
+    loop integers from {_size} - 1 to 1:
         set {_n} to int({_n}) + int({_bits::%loop-value%} ? 0) * int(2 ^ (loop-value - 1))
-    return {_n} if {_bits::64} is not 1, else -9223372036854775808 + int({_n})
+    if {_size} is 64:
+        return {_n} if {_bits::64} is not 1, else -9223372036854775808 + int({_n})
+    return {_n} if {_bits::%{_size}%} is not 1, else int({_n}) - int(2 ^ ({_size} - 1))
 
 # Converts a generic number value to integer.
 # This helps with parse-time type choosing.
